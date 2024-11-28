@@ -1,44 +1,58 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyPJQc1c2i/M2PQyFegMEQlY"
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "cells": [
-    {
-      "cell_type": "code",
-      "source": [
-        "!streamlit run app.py & npx localtunnel --port 8501 & curl ipv4.icanhazip.com\n"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "w2CoZQNg_Jvj",
-        "outputId": "19fc4cd8-d9fd-4875-9bd7-5b5f00494785"
-      },
-      "execution_count": 5,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "/bin/bash: line 1: streamlit: command not found\n",
-            "34.19.75.43\n",
-            "\u001b[1G\u001b[0K⠙\u001b[1G\u001b[0K⠹\u001b[1G\u001b[0K⠸\u001b[1G\u001b[0K⠼\u001b[1G\u001b[0K⠴\u001b[1G\u001b[0Kyour url is: https://puny-icons-fold.loca.lt\n"
-          ]
-        }
-      ]
-    }
-  ]
-}
+import streamlit as st
+from gtts import gTTS
+from io import BytesIO
+
+# Function to convert text to speech using gTTS
+def text_to_speech(text):
+    try:
+        # Convert text to speech using Google Text-to-Speech (gTTS)
+        tts = gTTS(text)
+        
+        # Save speech to a BytesIO buffer
+        audio_buffer = BytesIO()
+        tts.save(audio_buffer)  # Save speech to the buffer
+        audio_buffer.seek(0)  # Ensure the buffer is at the start
+        return audio_buffer
+    except Exception as e:
+        st.write(f"Error during text-to-speech conversion: {e}")
+        return None
+
+# Check if we are running in Google Colab or Streamlit
+def is_google_colab():
+    try:
+        # If running in Google Colab, this will be available
+        import google.colab
+        return True
+    except ImportError:
+        return False
+
+# Streamlit app interface
+st.title("Text-to-Speech Converter")
+st.write("This app converts your text input into speech.")
+
+# Prompt the user for text input
+user_input = st.text_input("Enter some text to convert to speech:")
+
+# If the user has entered text
+if user_input:
+    # Convert input text to speech
+    audio_output = text_to_speech(user_input)
+
+    # If audio was generated
+    if audio_output:
+        if is_google_colab():
+            # Display in Google Colab (using IPython display)
+            from IPython.display import Audio
+            audio_output.seek(0)  # Rewind buffer to start
+            st.write("Playing the generated audio response (Google Colab):")
+            Audio(audio_output.read(), autoplay=True)
+        else:
+            # Save the in-memory audio to a temporary file for Streamlit
+            with open("/tmp/temp_audio.mp3", "wb") as f:
+                f.write(audio_output.read())  # Write audio buffer to temporary file
+
+            # Stream the audio file in Streamlit
+            st.write("Playing the generated audio response (Streamlit):")
+            st.audio("/tmp/temp_audio.mp3", format="audio/mp3")
+    else:
+        st.write("Sorry, an error occurred while processing your request.")
